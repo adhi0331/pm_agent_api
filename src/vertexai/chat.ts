@@ -1,35 +1,44 @@
 import { VertexAI } from "@google-cloud/vertexai";
 import { Octobot } from "../github/octobot";
+import { functionDecs } from "./function_declerations";
+import { systemPrompt } from "./prompt";
 
-export class Chat {
+export class ChatBot {
 
     private vertexAI;
     private model;
-    private chatHistory: {
-        role: string;
-        parts: any[]
-    }[];
+    // private chatHistory: {
+    //     role: string;
+    //     parts: any[]
+    // }[];
     private functionDec;
-    private octobot
+    private octobot: Octobot;
+    private githubOwner: string;
 
-
-    constructor(systemPrompt: string, functionDec: any[], githubToken: string) {
+    constructor(systemPrompt: string) {
         this.vertexAI = new VertexAI({project: "gtp-cloud", location: 'us-west1'});
         this.model = this.vertexAI.getGenerativeModel({
             model: 'gemini-1.5-flash-001',
             systemInstruction: systemPrompt
         });
-        this.chatHistory = []
-        this.functionDec = functionDec
+        // this.chatHistory = []
+        this.functionDec = functionDecs as any[]
+    }
+
+    setGithubToken(githubToken: string) {
         this.octobot = new Octobot(githubToken);
     }
 
-    async generate_content(question: string): Promise<String>{
-        
-        const questionContent = {role: 'user', parts: [{text: question}]}
-        this.chatHistory.push(questionContent)
+    setGithubOwner(githubOwner: string) {
+        this.githubOwner = githubOwner;
+    }
 
-        var res = await this.model.generateContent({ contents: this.chatHistory, tools: this.functionDec});
+    async generate_content(chatHistory: {role: string, parts: any[]}[]): Promise<string>{
+        
+        // const questionContent = {role: 'user', parts: [{text: question}]}
+        // this.chatHistory.push(questionContent)
+
+        var res = await this.model.generateContent({ contents: chatHistory, tools: this.functionDec});
 
         if (!res.response.candidates) {
             return "No response, try again!"
@@ -51,9 +60,9 @@ export class Chat {
                         }
                     }
                 ]
-                this.chatHistory.push({role: 'model', parts: [{functionCall: {name: functionCall.name, args: functionCall.args}}]})
-                this.chatHistory.push({role: 'user', parts: functionResParts});
-                res = await this.model.generateContent({ contents: this.chatHistory, tools: this.functionDec}); 
+                chatHistory.push({role: 'model', parts: [{functionCall: {name: functionCall.name, args: functionCall.args}}]})
+                chatHistory.push({role: 'user', parts: functionResParts});
+                res = await this.model.generateContent({ contents: chatHistory, tools: this.functionDec}); 
             }
         }
 
@@ -61,7 +70,7 @@ export class Chat {
             return "No response, try again!";
         }
 
-        this.chatHistory.push(res.response.candidates[0].content);
+        chatHistory.push(res.response.candidates[0].content);
 
         return res.response.candidates[0].content.parts[0].text
 
@@ -75,8 +84,13 @@ export class Chat {
     }
 
     async createGithubIssue(args: Object) {
-        const {owner, repo, title, body, labels} = args as {owner: string, repo: string, title: string, body: string, labels: string[]}
-        return await this.octobot.createIssue(owner, repo, title, body, labels)
+        if (!this.octobot) {
+            return {error: "Octobot was not initialized properly"}
+        }
+        const {repo, title, body, labels} = args as  { repo: string, title: string, body: string, labels: string[]}
+        return await this.octobot.createIssue(this.githubOwner, repo, title, body, labels)
     }
 
 }
+
+export const chat = new ChatBot(systemPrompt);
