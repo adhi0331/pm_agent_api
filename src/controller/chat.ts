@@ -18,11 +18,14 @@ export const createChat = async (req: Request, res: Response, nxt: NextFunction)
     let thread = await threadRepository.findOne({where: {id: threadId}});
     if (!thread) {
         thread = threadRepository.create({title: "New Chat", user });
+        thread = await threadRepository.save(thread);
     }
     const chat_history = []
-    for (const chat of thread.chats) {
-        const part = {role: chat.role, parts: [{text: chat.text}]}
-        chat_history.push(part);
+    if (thread.chats) {
+        for (const chat of thread.chats) {
+            const part = {role: chat.role, parts: [{text: chat.text}]}
+            chat_history.push(part);
+        } 
     }
     chat_history.push({role: 'user', parts: [{text}]});
     const githubToken = user.githubToken;
@@ -34,8 +37,10 @@ export const createChat = async (req: Request, res: Response, nxt: NextFunction)
         throw Error("Error generating response. Try again");
     }
     const userChat = chatRepository.create({thread, user, role: 'user', text});
+    const savedUserChat = await chatRepository.save(userChat);
     const modelRes = chatRepository.create({thread, user, role: 'model', text: response});
-    res.status(201).send({chat: userChat, res: modelRes});
+    const savedModelRes = await chatRepository.save(modelRes)
+    res.status(201).send({chat: savedUserChat, res: savedModelRes});
 }
 
 export const getChat = async (req: Request, res: Response, nxt: NextFunction) => {
@@ -80,15 +85,17 @@ export const editChat = async (req: Request, res: Response, nxt: NextFunction) =
     }
     const chat_history = []
     var chatIndex = 0
-    for (const chat of thread.chats) {
-        if (chat.id !== chatToUpdate.id) {
-            const part = {role: chat.role, parts: [{text: chat.text}]}
-            chat_history.push(part);
-            chatIndex += 1
+    if (thread.chats) {
+        for (const chat of thread.chats) {
+            if (chat.id !== chatToUpdate.id) {
+                const part = {role: chat.role, parts: [{text: chat.text}]}
+                chat_history.push(part);
+                chatIndex += 1
+            } 
+            else {
+                break;
+            }
         } 
-        else {
-            break;
-        }
     }
     chat_history.push({role: 'user', parts: [{text}]});
     const githubToken = user.githubToken;

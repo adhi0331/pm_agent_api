@@ -13,8 +13,9 @@ export const createThread = async (req: Request, res: Response, nxt: NextFunctio
     if (!user) {
         throw Error("User not found");
     }
-    const thread = threadRepository.create({ title, user });
-    res.status(201).send(thread);
+    const thread = await threadRepository.create({ title, user });
+    const savedThread = await threadRepository.save(thread);
+    res.status(201).send(savedThread);
 }
 
 export const getThread = async (req: Request, res: Response, nxt: NextFunction) => {

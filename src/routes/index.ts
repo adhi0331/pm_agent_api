@@ -7,6 +7,6 @@ const router = express.Router();
 
 router.use("/user", userRouter);
 router.use("/thread", threadRouter);
-router.use("/chatRouter", chatRouter);
+router.use("/chat", chatRouter);
 
 export default router

@@ -9,7 +9,8 @@ const userRepository = AppDataSource.getRepository(User);
 export const createUser = async (req: Request, res: Response, nxt: NextFunction) => {
     const { name, email, githubUserName, githubToken } = req.body
     const user = userRepository.create({ name, email, githubUserName, githubToken })
-    res.status(201).send(user);
+    const savedUser = await userRepository.save(user);
+    res.status(201).send(savedUser);
 }
 
 export const getUser = async (req: Request, res: Response, nxt: NextFunction) => {
