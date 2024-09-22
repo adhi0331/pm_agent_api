@@ -15,10 +15,16 @@ export const createChat = async (req: Request, res: Response, nxt: NextFunction)
     if (!user) {
         throw Error("User not found");
     }
-    let thread = await threadRepository.findOne({where: {id: threadId}});
-    if (!thread) {
+    let thread: Thread | null;
+    if (!threadId) {
         thread = threadRepository.create({title: "New Chat", user });
-        thread = await threadRepository.save(thread);
+        thread = await threadRepository.save(thread); 
+    }
+    else {
+        thread = await threadRepository.findOne({where: {id: threadId}});
+    }
+    if (!thread) {
+        throw Error("Thread not found");
     }
     const chat_history = []
     if (thread.chats) {

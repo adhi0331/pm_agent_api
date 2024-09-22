@@ -1,9 +1,10 @@
 import express from "express";
-import { createUser, getUser, getAllUsers, editUser, deleteUser } from "../controller";
+import { createUser, getUser, getAllUsers, editUser, deleteUser, registerGithubToken } from "../controller";
 
 const router = express.Router()
 
 router.post("", [createUser]);
+router.post("/githubtoken", [registerGithubToken]);
 router.get("", [getUser]);
 router.get("/all", [getAllUsers]);
 router.patch("", editUser);
