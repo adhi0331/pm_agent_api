@@ -17,11 +17,10 @@ export const createChat = async (req: Request, res: Response, nxt: NextFunction)
     }
     let thread: Thread | null;
     if (!threadId) {
-        thread = threadRepository.create({title: "New Chat", user });
-        thread = await threadRepository.save(thread); 
+        thread = threadRepository.create({title: "New Chat", user }); 
     }
     else {
-        thread = await threadRepository.findOne({where: {id: threadId}});
+        thread = await threadRepository.findOne({where: {id: threadId, user: {id: userId}}, relations: ['chats']});
     }
     if (!thread) {
         throw Error("Thread not found");
@@ -46,7 +45,13 @@ export const createChat = async (req: Request, res: Response, nxt: NextFunction)
     const savedUserChat = await chatRepository.save(userChat);
     const modelRes = chatRepository.create({thread, user, role: 'model', text: response});
     const savedModelRes = await chatRepository.save(modelRes)
-    res.status(201).send({chat: savedUserChat, res: savedModelRes});
+    if (thread.chats) {
+        thread.chats.push(savedUserChat, savedModelRes);
+    } else {
+        thread.chats = [savedUserChat, savedModelRes];
+    }
+    await threadRepository.save(thread); 
+    res.status(201).send({savedModelRes});
 }
 
 export const getChat = async (req: Request, res: Response, nxt: NextFunction) => {
@@ -55,7 +60,7 @@ export const getChat = async (req: Request, res: Response, nxt: NextFunction) =>
     if (!user) {
         throw Error("User not found");
     }
-    const chat = await chatRepository.findOne({ where: {id: chatId, user }})
+    const chat = await chatRepository.findOne({ where: {id: chatId, user: {id: userId} }})
     if (!chat) {
         throw Error("Chat not found");
     }
@@ -68,7 +73,7 @@ export const getAllChats = async (req: Request, res: Response, nxt: NextFunction
     if (!user) {
         throw Error("User not found");
     }
-    const chats = await chatRepository.find({ where: {user}});
+    const chats = await chatRepository.find({ where: {user: {id: userId}}});
     if (!chats) {
         throw Error("No threads found");
     }
