@@ -1,6 +1,6 @@
 # Task Organizer
 
-This application utilizes GenAI to automatically generate task descriptions for software projects.
+This application is an AI agent for project managers. It acts as a scrum master and allows managers to efficiently deal with project requirements.
 
 ## Problem
 
